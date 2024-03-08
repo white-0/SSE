@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSE Demo</title>
+</head>
+
+<body>
+  <h1>SSE Demo</h1>
+  <button id="connected">建立 SSE 连接</button>
+  <button id="disconnected">断开 SSE 连接</button>
+  <br />
+  <br />
+  <div id="message"></div>
+
+  <script>
+    const messageElement = document.getElementById('message')
+
+    const durations = new Array(1000).fill(0);
+    let count = 0;
+
+    let eventSource;
+    // 建立 SSE 连接
+    const connectSSE = () => {
+      const beginTime = performance.now();
+      eventSource = new EventSource('https://localhost:8443/sse?content=xxx')
+
+      // 监听消息事件
+      eventSource.addEventListener('customEvent', (event) => {
+        const data = JSON.parse(event.data)
+        messageElement.innerHTML += `${data.id} --- ${data.time} --- params参数：${JSON.stringify(data.params)}` + '<br />'
+      })
+
+      eventSource.onopen = () => {
+        messageElement.innerHTML += `SSE 连接成功，状态${eventSource.readyState}<br />`
+      }
+
+      eventSource.onerror = () => {
+        messageElement.innerHTML += `SSE 连接错误，状态${eventSource.readyState}<br />`
+        eventSource.close();
+
+        console.log(`第${count + 1}次耗时：`, durations[count], '平均耗时：', durations.reduce((a, b) => a + b) / (count + 1));
+        count++;
+        if (count < 1000) {
+          connectSSE();
+        }
+      }
+
+      eventSource.onmessage = (e) => {
+        durations[count] = (performance.now() - beginTime);
+      }
+    }
+
+    // 断开 SSE 连接
+    const closeSSE = () => {
+      eventSource.close()
+      messageElement.innerHTML += `SSE 连接关闭，状态${eventSource.readyState}<br />`
+    }
+
+    connected.addEventListener('click', connectSSE);
+  </script>
+</body>
+
+</html>

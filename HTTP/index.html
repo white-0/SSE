@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSE Demo</title>
+</head>
+
+<body>
+  <h1>SSE Demo</h1>
+  <button id="connected">建立 SSE 连接</button>
+  <button id="disconnected">断开 SSE 连接</button>
+  <br />
+  <br />
+  <div id="message"></div>
+
+  <script type="module">
+    import { fetchEventSource } from './fetch.js';
+
+    const beginTime = performance.now();
+
+    const messageElement = document.getElementById('message')
+    let abortController
+
+    // 建立 SSE 连接
+    const connectSSE = () => {
+      abortController = new AbortController();
+
+      fetchEventSource('http://127.0.0.1:3000/sse', {
+        method: 'POST',
+        openWhenHidden: true,
+        signal: abortController.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          foo: 'bar'
+        }),
+        onopen(res) {
+          // 需要处理非 200 状态码
+          const contentType = res.headers.get('content-type');
+          if (!contentType?.startsWith('text/event-stream')) {
+            throw new FatalError(`Expected content-type to be text/event-stream, Actual: ${contentType}`);
+          }
+          if (res.ok && res.status === 200) {
+            return
+          }
+          if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+            throw new FatalError()
+          }
+          // Anything other than above cases are retried
+          // throw new RetriableError()
+        },
+        onmessage(event) {
+          messageElement.innerHTML += `${JSON.stringify(event)} <br />`
+          console.log('duration', performance.now() - beginTime);
+
+        },
+        onclose(e) {
+          console.log('onclose', e);
+        },
+        onerror(err) {
+          if (err instanceof FatalError) {
+            throw err; // rethrow to stop the operation
+          }
+        },
+      });
+    }
+
+    // 断开 SSE 连接
+    const closeSSE = () => {
+      abortController.abort();
+      abortController = null;
+    }
+
+    connected.onclick = () => {
+      connectSSE();
+    }
+    disconnected.onclick = () => {
+      closeSSE();
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSE Demo</title>
+</head>
+
+<body>
+  <h1>SSE Demo</h1>
+  <button id="connected">建立 SSE 连接</button>
+  <button id="disconnected">断开 SSE 连接</button>
+  <br />
+  <br />
+  <div id="message"></div>
+
+  <script type="module">
+    import { fetchEventSource } from './fetch.js';
+
+    const durations = new Array(1000).fill(0);
+    let count = 0;
+
+    const messageElement = document.getElementById('message')
+    let abortController
+
+    // 建立 SSE 连接
+    const connectSSE = () => {
+      abortController = new AbortController();
+      const beginTime = performance.now();
+
+      fetchEventSource('https://localhost:3001/sse?content=xxx', {
+        method: 'POST',
+        openWhenHidden: true,
+        signal: abortController.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          foo: 'bar'
+        }),
+        onopen(res) {
+          // 需要处理非 200 状态码
+          const contentType = res.headers.get('content-type');
+          if (!contentType?.startsWith('text/event-stream')) {
+            throw new FatalError(`Expected content-type to be text/event-stream, Actual: ${contentType}`);
+          }
+          if (res.ok && res.status === 200) {
+            return
+          }
+          if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+            throw new FatalError()
+          }
+          // Anything other than above cases are retried
+          // throw new RetriableError()
+        },
+        onmessage(event) {
+          // messageElement.innerHTML += `${JSON.stringify(event)} <br />`
+          durations[count] = (performance.now() - beginTime);
+        },
+        onclose(e) {
+          console.log(`第${count + 1}次耗时：`, durations[count], '平均耗时：', durations.reduce((a, b) => a + b) / (count + 1));
+          count++;
+          if (count < 1000) {
+            connectSSE();
+          }
+        },
+        onerror(err) {
+          if (err instanceof FatalError) {
+            throw err; // rethrow to stop the operation
+          }
+
+        },
+      });
+    }
+
+    // 断开 SSE 连接
+    const closeSSE = () => {
+      abortController.abort();
+      abortController = null;
+    }
+
+    connected.onclick = () => {
+      connectSSE();
+    }
+    disconnected.onclick = () => {
+      closeSSE();
+    }
+  </script>
+</body>
+
+</html>
