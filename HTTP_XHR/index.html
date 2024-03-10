@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP_XHR</title>
+</head>
+
+<body>
+    <button id="connect">连接</button>
+    <button id="abortSSE">中断请求</button>
+
+    <script type="module">
+        const connectEle = document.getElementById('connect')
+        const abortEle = document.getElementById('abortSSE')
+
+        const connectSSE = () => {
+            const url = 'http://localhost:3000/sse';
+            const xhr = new XMLHttpRequest();
+
+            const formData = new FormData();
+            formData.append('status', 200)
+
+            xhr.open("POST", url, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 3 && xhr.status === 200) {
+                    // 处理接收到的部分数据
+                    const newData = xhr.responseText;
+                    console.log("Received data:", newData);
+                    // 这里可以解析并使用数据
+                }
+            };
+
+            xhr.onerror = function (err) {
+                console.log('[XHR ERR]', err);
+            };
+            xhr.ontimeout = function () {
+                console.log('[XHR TIMEOUT]');
+            };
+            xhr.send(formData);
+
+            return xhr;
+        };
+
+        const xhr = connectSSE();
+
+        connectEle.addEventListener('click', () => {
+            connectSSE();
+        })
+        abortEle.addEventListener('click', () => {
+            xhr.abort();
+        })
+
+    </script>
+</body>
+
+</html>

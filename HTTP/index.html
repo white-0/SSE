@@ -56,7 +56,6 @@
         onmessage(event) {
           messageElement.innerHTML += `${JSON.stringify(event)} <br />`
           console.log('duration', performance.now() - beginTime);
-
         },
         onclose(e) {
           console.log('onclose', e);

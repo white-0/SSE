@@ -1,0 +1,9 @@
+- Options
+    - onmessage - 每次响应 callback
+    - onerror - 失败 callback
+    - onopen - 建立连接 callback
+- Response
+    - 返回文本格式：Id / retry / data / event
+    - Retry 机制
+- Request next 查询时 head 中last-event-id
+    - 数据来源于 sse 推送的 id 
